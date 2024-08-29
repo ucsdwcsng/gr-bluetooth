@@ -159,11 +159,6 @@ namespace gr {
       double channel_abs_freq(int channel);
 
       int abs_freq_channel(double freq);
-
-    public:
-      virtual int work (int noutput_items,
-                        gr_vector_const_void_star &input_items,
-                        gr_vector_void_star &output_items);
     };
 
 } // namespace bluetooth
