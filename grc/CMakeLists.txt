@@ -18,11 +18,8 @@
 # Boston, MA 02110-1301, USA.
 
 install(FILES
-    bluetooth_multi_block.block.yml
     bluetooth_multi_hopper.block.yml
     bluetooth_multi_LAP.block.yml
     bluetooth_multi_sniffer.block.yml
-    bluetooth_multi_UAP.block.yml
-    bluetooth_packet.block.yml
-    bluetooth_piconet.block.yml DESTINATION share/gnuradio/grc/blocks
+    bluetooth_multi_UAP.block.yml DESTINATION share/gnuradio/grc/blocks
 )

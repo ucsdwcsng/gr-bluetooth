@@ -14,7 +14,7 @@
 /* BINDTOOL_GEN_AUTOMATIC(0)                                                       */
 /* BINDTOOL_USE_PYGCCXML(0)                                                        */
 /* BINDTOOL_HEADER_FILE(multi_block.h)                                        */
-/* BINDTOOL_HEADER_FILE_HASH(d443652e44a58f77afd083265d2103e8)                     */
+/* BINDTOOL_HEADER_FILE_HASH(15010d9701131c7800fd3d86e796edd4)                     */
 /***********************************************************************************/
 
 #include <pybind11/complex.h>
@@ -39,13 +39,6 @@ void bind_multi_block(py::module& m)
                gr::basic_block,
                std::shared_ptr<multi_block>>(m, "multi_block", D(multi_block))
 
-
-        .def("work",
-             &multi_block::work,
-             py::arg("noutput_items"),
-             py::arg("input_items"),
-             py::arg("output_items"),
-             D(multi_block, work))
 
         ;
 }
