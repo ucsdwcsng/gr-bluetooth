@@ -7,9 +7,9 @@ If LAP is unspecified, LAP detection mode is enabled.
 If LAP is specified without UAP, UAP detection mode is enabled.
 """
 
-from gnuradio import gr, blocks
+from gnuradio import gr, blocks, bluetooth as gr_bluetooth
 
-import bluetooth
+# import bluetooth
 from gnuradio.eng_option import eng_option
 from optparse import OptionParser
 
