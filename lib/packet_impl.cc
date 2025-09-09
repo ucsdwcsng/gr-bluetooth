@@ -1530,6 +1530,7 @@ namespace gr {
       : packet(stream, length, freq)
     {
       d_index = freq2index( freq );
+      d_channel = freq2chan( freq );
 
       (void) ::memcpy( &d_link_symbols[0], stream, LE_MAX_SYMBOLS );
 
@@ -1558,9 +1559,23 @@ namespace gr {
         d_PDU_Length = (header >> 8) & 0x1f;
       }
 
+      if (d_PDU_Length > 00) {
+        d_have_payload   = true;
+        d_payload_length = d_PDU_Length;
+      }
+
       unsigned pi;
-      for( pi=0, i=56; i+8<LE_MAX_SYMBOLS; pi++, i+=8 ) {
+      for( pi=0, i=56; i+8<LE_MAX_SYMBOLS && pi<d_PDU_Length; pi++, i+=8 ) {
         d_pdu[pi] = air_to_host8(&d_link_symbols[i], 8);
+      }
+      
+      // Extract CRC (3 bytes) from the end of the packet
+      // CRC starts after the PDU data
+      unsigned crc_start = 56 + (d_PDU_Length * 8);
+      if (crc_start + 24 <= LE_MAX_SYMBOLS) {
+        d_crc = air_to_host32(&d_link_symbols[crc_start], 24) & 0xFFFFFF;
+      } else {
+        d_crc = 0; // No valid CRC available
       }
     }
 
@@ -1570,12 +1585,12 @@ namespace gr {
 
     bool le_packet_impl::decode_header()
     {
-      return false; // FIXME: TODO
+      return true;
     }
     
     void le_packet_impl::decode_payload()
     {
-      // FIXME: TODO
+      
     }
            
     void le_packet_impl::print()
@@ -1666,12 +1681,58 @@ namespace gr {
       
     char *le_packet_impl::tun_format()
     {
-      return (char*)calloc(256,1); // FIXME: TODO
+      /* 
+       * BLE TUN format:
+       * - 4 bytes: Access Address (AA)
+       * - 1 byte: Channel index
+       * - 1 byte: PDU Type (for access channels) or LLID (for data channels)  
+       * - 2 bytes: Header flags (TxAdd/RxAdd for access, NESN/SN/MD for data)
+       * - 1 byte: PDU Length
+       * - N bytes: PDU payload
+       */
+      int header_size = 9;  // metadata + BLE header info
+      int length = header_size + d_PDU_Length;
+      char *tun_format = (char *) malloc(length);
+      int i;
+
+      /* Clear the buffer */
+      memset(tun_format, 0, length);
+
+      /* Access Address (4 bytes, little endian) */
+      tun_format[0] = d_AA & 0xff;
+      tun_format[1] = (d_AA >> 8) & 0xff;
+      tun_format[2] = (d_AA >> 16) & 0xff;
+      tun_format[3] = (d_AA >> 24) & 0xff;
+
+      /* Channel index */
+      tun_format[4] = d_index & 0xff;
+
+      if (d_index >= 37) {
+        /* Access Channel packet */
+        tun_format[5] = d_PDU_Type & 0x0f;           // PDU Type (4 bits)
+        tun_format[6] = ((d_RxAdd & 1) << 1) | (d_TxAdd & 1);  // TxAdd/RxAdd flags
+        tun_format[7] = 0;                           // Reserved/unused
+      } else {
+        /* Data Channel packet */
+        tun_format[5] = d_LLID & 0x03;               // LLID (2 bits)
+        tun_format[6] = ((d_MD & 1) << 2) | ((d_SN & 1) << 1) | (d_NESN & 1);  // Control bits
+        tun_format[7] = 0;                           // Reserved/unused
+      }
+
+      /* PDU Length */
+      tun_format[8] = d_PDU_Length & 0xff;
+
+      /* PDU payload data */
+      for (i = 0; i < d_PDU_Length && i < LE_MAX_PDU_OCTETS; i++) {
+        tun_format[i + header_size] = d_pdu[i];
+      }
+
+      return tun_format;
     }
       
     bool le_packet_impl::header_present()
     {
-      return false; // FIXME: TODO
+      return true; 
     }
 
   } /* namespace bluetooth */

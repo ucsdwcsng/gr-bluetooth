@@ -34,15 +34,15 @@ namespace gr {
   namespace bluetooth {
 
     multi_hopper::sptr
-    multi_hopper::make(double sample_rate, double center_freq, double squelch_threshold, int LAP, bool aliased, bool tun)
+    multi_hopper::make(double sample_rate, double center_freq, double squelch_threshold, int LAP, bool aliased, bool tun, const char* pcapng_filename)
     {
-      return gnuradio::get_initial_sptr (new multi_hopper_impl(sample_rate, center_freq, squelch_threshold, LAP, aliased, tun));
+      return gnuradio::get_initial_sptr (new multi_hopper_impl(sample_rate, center_freq, squelch_threshold, LAP, aliased, tun, pcapng_filename));
     }
 
     /*
      * The private constructor
      */
-    multi_hopper_impl::multi_hopper_impl(double sample_rate, double center_freq, double squelch_threshold, int LAP, bool aliased, bool tun)
+    multi_hopper_impl::multi_hopper_impl(double sample_rate, double center_freq, double squelch_threshold, int LAP, bool aliased, bool tun, const char* pcapng_filename)
       : gr::sync_block ("bluetooth multi hopper block",
                        gr::io_signature::make (1, 1, sizeof (gr_complex)),
                        gr::io_signature::make (0, 0, 0)),
@@ -53,6 +53,15 @@ namespace gr {
 	d_tun = tun;
 	set_symbol_history(SYMBOLS_FOR_BASIC_RATE_HISTORY);
 	d_piconet = basic_rate_piconet::make(d_LAP);
+
+	/* Initialize PCAPNG writer if filename provided */
+	if (pcapng_filename && strlen(pcapng_filename) > 0) {
+		d_pcapng_writer = pcapng_writer::make(std::string(pcapng_filename));
+		if (d_pcapng_writer && !d_pcapng_writer->init()) {
+			fprintf(stderr, "Warning: Failed to initialize PCAPNG writer\n");
+			d_pcapng_writer.reset();
+		}
+	}
 
 	/* Tun interface */
 	if(d_tun) {
@@ -71,6 +80,9 @@ namespace gr {
      */
     multi_hopper_impl::~multi_hopper_impl()
     {
+      if (d_pcapng_writer) {
+        d_pcapng_writer->close();
+      }
     }
 
     int
@@ -185,6 +197,15 @@ namespace gr {
                   packet->decode();
                   if(packet->got_payload()) {
                     packet->print();
+                    
+                    // Write to pcapng if enabled
+                    if (d_pcapng_writer && d_pcapng_writer->is_enabled()) {
+                      uint64_t timestamp_ns = (uint64_t)clkn * 625000; // 625 us per slot in ns
+                      int8_t signal_power = (int8_t)(snr + 10); // Rough estimate
+                      int8_t noise_power = 10; // Rough estimate
+                      d_pcapng_writer->write_bredr_packet(packet, d_piconet, timestamp_ns, signal_power, noise_power);
+                    }
+                    
                     if(d_tun) {
                       /* include 9 bytes for meta data & packet header */
                       int length = packet->get_payload_length() + 9;

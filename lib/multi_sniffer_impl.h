@@ -29,6 +29,7 @@
 #include "bluetooth/multi_sniffer.h"
 #include "bluetooth/packet.h"
 #include "bluetooth/piconet.h"
+#include "bluetooth/pcapng_writer.h"
 #include "tun.h"
 #include <map>
 
@@ -55,6 +56,9 @@ namespace gr {
       std::map<int, basic_rate_piconet::sptr> d_basic_rate_piconets;
       std::map<uint32_t, low_energy_piconet::sptr> d_low_energy_piconets;
 
+      /* PCAPNG writer for packet logging */
+      pcapng_writer::sptr d_pcapng_writer;
+
       /* handle AC */
       void ac(char *symbols, int len, double freq, double snr);
 
@@ -66,12 +70,12 @@ namespace gr {
 
       /* decode packets with headers */
       void decode(classic_packet::sptr pkt, basic_rate_piconet::sptr pn,
-                  bool first_run);
-      void decode(le_packet::sptr pkt, low_energy_piconet::sptr pn);
+                  bool first_run, double snr);
+      void decode(le_packet::sptr pkt, low_energy_piconet::sptr pn, double snr);
 
       /* work on UAP/CLK1-6 discovery */
-      void discover(classic_packet::sptr pkt, basic_rate_piconet::sptr pn);
-      void discover(le_packet::sptr pkt, low_energy_piconet::sptr pn);
+      void discover(classic_packet::sptr pkt, basic_rate_piconet::sptr pn, double snr);
+      void discover(le_packet::sptr pkt, low_energy_piconet::sptr pn, double snr);
 
       /* decode stored packets */
       void recall(basic_rate_piconet::sptr pn);
@@ -81,7 +85,7 @@ namespace gr {
       void fhs(classic_packet::sptr pkt);
 
     public:
-      multi_sniffer_impl(double sample_rate, double center_freq, double squelch_threshold, bool tun);
+      multi_sniffer_impl(double sample_rate, double center_freq, double squelch_threshold, bool tun, const char* pcapng_filename = nullptr);
       ~multi_sniffer_impl();
 
       // Where all the action really happens

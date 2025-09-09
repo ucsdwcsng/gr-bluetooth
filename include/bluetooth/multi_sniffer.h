@@ -50,8 +50,14 @@ namespace gr {
         * constructor is in a private implementation
         * class. gr::bluetooth::multi_sniffer::make is the public interface for
         * creating new instances.
+        *
+        * \param sample_rate Sample rate in Hz
+        * \param center_freq Center frequency in Hz
+        * \param squelch_threshold Squelch threshold in dB
+        * \param tun Enable TUN interface output
+        * \param pcapng_filename Output pcapng filename (nullptr to disable pcapng output)
         */
-       static sptr make(double sample_rate, double center_freq, double squelch_threshold, bool tun);
+       static sptr make(double sample_rate, double center_freq, double squelch_threshold, bool tun, const char* pcapng_filename = nullptr);
     };
 
   } // namespace bluetooth

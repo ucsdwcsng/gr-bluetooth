@@ -28,6 +28,7 @@
 
 #include "bluetooth/multi_hopper.h"
 #include "bluetooth/piconet.h"
+#include "bluetooth/pcapng_writer.h"
 #include "tun.h"
 
 namespace gr {
@@ -48,6 +49,9 @@ namespace gr {
 	/* the piconet we are monitoring */
         basic_rate_piconet::sptr d_piconet;
 
+	/* PCAPNG writer for packet logging */
+	pcapng_writer::sptr d_pcapng_writer;
+
 	/*
 	 * follow a piconet's hopping sequence and look for packets on the
 	 * appropriate channel for each time slot
@@ -62,7 +66,7 @@ namespace gr {
 	static const unsigned short ETHER_TYPE = 0xFFF0;
 
     public:
-      multi_hopper_impl(double sample_rate, double center_freq, double squelch_threshold, int LAP, bool aliased, bool tun);
+      multi_hopper_impl(double sample_rate, double center_freq, double squelch_threshold, int LAP, bool aliased, bool tun, const char* pcapng_filename = nullptr);
       ~multi_hopper_impl();
 
       // Where all the action really happens

@@ -39,8 +39,16 @@ namespace gr {
       friend class base_rate_piconet;
       friend class low_energy_piconet;
 
-      /* queue of packets to be decoded */
-      std::vector<packet::sptr> d_pkt_queue;
+      /* Structure to store packet with its SNR information */
+      struct queued_packet {
+        packet::sptr pkt;
+        double snr;
+        
+        queued_packet(packet::sptr p, double s) : pkt(p), snr(s) {}
+      };
+
+      /* queue of packets to be decoded with SNR information */
+      std::vector<queued_packet> d_pkt_queue;
 
     public:
       typedef std::shared_ptr<piconet> sptr;
@@ -58,10 +66,13 @@ namespace gr {
       /* reset UAP/clock discovery */
       virtual void reset() = 0;
 
-      /* add a packet to the queue */
-      void enqueue(packet::sptr pkt);
+      /* add a packet to the queue with SNR information */
+      void enqueue(packet::sptr pkt, double snr);
 
-      /* pull the first packet from the queue (FIFO) */
+      /* pull the first packet from the queue (FIFO) with SNR */
+      std::pair<packet::sptr, double> dequeue_with_snr();
+      
+      /* pull the first packet from the queue (FIFO) - backward compatibility */
       packet::sptr dequeue();
     };
 

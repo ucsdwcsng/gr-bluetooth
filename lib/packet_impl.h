@@ -167,6 +167,7 @@ namespace gr {
 
       char    d_link_symbols[LE_MAX_SYMBOLS];
       uint8_t d_pdu[LE_MAX_PDU_OCTETS];
+      uint32_t d_crc;  // BLE packet CRC
 
     public:
       le_packet_impl(char *stream, int length, double freq=0.0);
@@ -191,6 +192,30 @@ namespace gr {
       uint32_t get_AA() { return d_AA; }
 
       int get_channel( ) { return d_channel; }
+
+      /* Get PDU data for pcapng export */
+      const uint8_t* get_pdu() { return d_pdu; }
+
+      /* Get PDU type */
+      uint8_t get_pdu_type() { return d_PDU_Type; }
+
+      /* Get PDU length */
+      unsigned get_pdu_length() { return d_PDU_Length; }
+
+      /* Get link layer header information */
+      uint8_t get_llid() { return d_LLID; }
+      uint8_t get_nesn() { return d_NESN; }
+      uint8_t get_sn() { return d_SN; }
+      uint8_t get_md() { return d_MD; }
+      uint8_t get_tx_add() { return d_TxAdd; }
+      uint8_t get_rx_add() { return d_RxAdd; }
+
+      /* Get CRC */
+      uint32_t get_crc() { return d_crc; }
+
+      /* Get raw symbol data for pcapng export */
+      const char* get_symbols() { return d_link_symbols; }
+      int get_symbol_length() { return d_length; }
     };
 
   } // namespace bluetooth

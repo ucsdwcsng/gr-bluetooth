@@ -340,7 +340,31 @@ namespace gr {
       /* return the low-energy packet's AA */
       virtual uint32_t get_AA() = 0;
 
+      /* return the low-energy packet's CRC */
+      virtual uint32_t get_crc() = 0;
+
       virtual int get_channel( ) = 0;
+
+      /* Get PDU data for pcapng export */
+      virtual const uint8_t* get_pdu() = 0;
+
+      /* Get PDU type */
+      virtual uint8_t get_pdu_type() = 0;
+
+      /* Get PDU length */
+      virtual unsigned get_pdu_length() = 0;
+
+      /* Get link layer header information */
+      virtual uint8_t get_llid() = 0;
+      virtual uint8_t get_nesn() = 0;
+      virtual uint8_t get_sn() = 0;
+      virtual uint8_t get_md() = 0;
+      virtual uint8_t get_tx_add() = 0;
+      virtual uint8_t get_rx_add() = 0;
+
+      /* Get raw symbol data for pcapng export */
+      virtual const char* get_symbols() = 0;
+      virtual int get_symbol_length() = 0;
     };
 
   } // namespace bluetooth

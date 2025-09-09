@@ -34,21 +34,29 @@
 namespace gr {
   namespace bluetooth {
 
-    /* add a packet to the queue */
-    void piconet::enqueue(packet::sptr pkt) {
-      d_pkt_queue.push_back(pkt);
+    /* add a packet to the queue with SNR information */
+    void piconet::enqueue(packet::sptr pkt, double snr) {
+      d_pkt_queue.emplace_back(pkt, snr);
     }
 
-    /* pull the first packet from the queue (FIFO) */
-    packet::sptr piconet::dequeue( ) {
-      packet::sptr pkt;
-      
+    /* pull the first packet from the queue (FIFO) with SNR */
+    std::pair<packet::sptr, double> piconet::dequeue_with_snr() {
       if (d_pkt_queue.size() > 0) {
-        pkt = d_pkt_queue.front();
+        queued_packet qpkt = d_pkt_queue.front();
         d_pkt_queue.erase(d_pkt_queue.begin());
+        return std::make_pair(qpkt.pkt, qpkt.snr);
       }
+      return std::make_pair(packet::sptr(), 0.0);
+    }
 
-      return pkt;
+    /* pull the first packet from the queue (FIFO) - backward compatibility */
+    packet::sptr piconet::dequeue() {
+      if (d_pkt_queue.size() > 0) {
+        packet::sptr pkt = d_pkt_queue.front().pkt;
+        d_pkt_queue.erase(d_pkt_queue.begin());
+        return pkt;
+      }
+      return packet::sptr();
     }
 
     // ---------------------------------------------------------------------

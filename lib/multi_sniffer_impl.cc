@@ -29,6 +29,12 @@
 
 #include <gnuradio/io_signature.h>
 #include "multi_sniffer_impl.h"
+#include <cstring>
+#include <sys/time.h>
+#include <vector>
+
+// Include BLE packet constants
+#define CONNECT_REQ 5
 
 namespace gr {
   namespace bluetooth {
@@ -41,23 +47,33 @@ namespace gr {
 	  
     multi_sniffer::sptr
     multi_sniffer::make(double sample_rate, double center_freq,
-                        double squelch_threshold, bool tun)
+                        double squelch_threshold, bool tun, const char* pcapng_filename)
     {
       return gnuradio::get_initial_sptr (new multi_sniffer_impl(sample_rate, center_freq, 
-                                                                squelch_threshold, tun));
+                                                                squelch_threshold, tun, pcapng_filename));
     }
 
     /*
      * The private constructor
      */
     multi_sniffer_impl::multi_sniffer_impl(double sample_rate, double center_freq,
-                                           double squelch_threshold, bool tun)
+                                           double squelch_threshold, bool tun, const char* pcapng_filename)
       : gr::sync_block ("bluetooth multi sniffer block",
                        gr::io_signature::make (1, 1, sizeof (gr_complex)),
                        gr::io_signature::make (0, 0, 0)),
         multi_block(sample_rate, center_freq, squelch_threshold)
     {
       d_tun = tun;
+      
+      /* Initialize PCAPNG writer if filename provided */
+      if (pcapng_filename && strlen(pcapng_filename) > 0) {
+        d_pcapng_writer = pcapng_writer::make(std::string(pcapng_filename));
+        if (d_pcapng_writer && !d_pcapng_writer->init()) {
+          fprintf(stderr, "Warning: Failed to initialize PCAPNG writer\n");
+          d_pcapng_writer.reset();
+        }
+      }
+      
       set_symbol_history(SYMBOLS_FOR_BASIC_RATE_HISTORY);
 
       /* Tun interface */
@@ -77,6 +93,9 @@ namespace gr {
      */
     multi_sniffer_impl::~multi_sniffer_impl()
     {
+      if (d_pcapng_writer) {
+        d_pcapng_writer->close();
+      }
     }
 
     int
@@ -184,10 +203,10 @@ namespace gr {
         basic_rate_piconet::sptr pn = d_basic_rate_piconets[lap];
 
         if (pn->have_clk6() && pn->have_UAP()) {
-          decode(pkt, pn, true);
+          decode(pkt, pn, true, snr);
         } 
         else {
-          discover(pkt, pn);
+          discover(pkt, pn, snr);
         }
 
         /*
@@ -219,6 +238,7 @@ namespace gr {
           d_low_energy_piconets[aa] = low_energy_piconet::make(aa);
         }
         low_energy_piconet::sptr pn = d_low_energy_piconets[aa];
+        decode(pkt, pn, snr);
       }
       else {
         // TODO: log AA
@@ -237,7 +257,7 @@ namespace gr {
     /* decode packets with headers */
     void multi_sniffer_impl::decode(classic_packet::sptr pkt,
                                     basic_rate_piconet::sptr pn, 
-                                    bool first_run)
+                                    bool first_run, double snr)
     {
       uint32_t clock; /* CLK of target piconet */
 
@@ -249,6 +269,15 @@ namespace gr {
 
       if (pkt->got_payload()) {
         pkt->print();
+        
+        // Write to pcapng if enabled
+        if (d_pcapng_writer && d_pcapng_writer->is_enabled()) {
+          uint64_t timestamp_ns = (uint64_t)pkt->d_clkn * 625000; // 625 us per slot in ns
+          int8_t signal_power = (int8_t)(snr + 10); // Rough estimate
+          int8_t noise_power = 10; // Rough estimate
+          d_pcapng_writer->write_bredr_packet(pkt, pn, timestamp_ns, signal_power, noise_power);
+        }
+        
         if (d_tun) {
           uint64_t addr = (pkt->get_UAP() << 24) | pkt->get_LAP();
 
@@ -272,25 +301,62 @@ namespace gr {
         pn->reset();
 
         /* start rediscovery with this packet */
-        discover(pkt, pn);
+        discover(pkt, pn, snr);
       } else {
         printf("Giving up on queued packet!\n");
       }
     }
 
     void multi_sniffer_impl::decode(le_packet::sptr pkt, 
-                                    low_energy_piconet::sptr pn) {
+                                    low_energy_piconet::sptr pn, double snr) {
       
+      // Decode the BLE packet using libbtbb integration
+      pkt->decode();
+
+      if (pkt->got_payload()) {
+        pkt->print();
+        
+        // Write to pcapng if enabled  
+        if (d_pcapng_writer && d_pcapng_writer->is_enabled()) {
+          uint32_t clkn = (int) (d_cumulative_count / d_samples_per_slot) & 0x7ffffff;
+          uint64_t timestamp_ns = (uint64_t)clkn * 625000; // 625 us per slot in ns
+          int8_t signal_power = (int8_t)(snr + 10); // Rough estimate
+          int8_t noise_power = 10; // Rough estimate
+          d_pcapng_writer->write_le_packet(pkt, timestamp_ns, signal_power, noise_power);
+        }
+        
+        if (d_tun) {
+          // For BLE packets, use the Access Address as the identifier
+          uint64_t addr = pkt->get_AA();
+          
+          // Get TUN format data from the packet
+          char *data = pkt->tun_format();
+          if (data) {
+            // Calculate the length: metadata + payload length
+            int length = pkt->get_payload_length() + 10; // Adjust based on TUN format
+            
+            write_interface(d_tunfd, (unsigned char *)data, length,
+                            0, addr, ETHER_TYPE);
+            free(data);
+          }
+        }
+        
+        // Note: Access address is set during piconet creation, not here
+        
+      } else {
+        fprintf(stderr, "BLE packet decode failed - no payload\n");
+      }
     }
 
     /* work on UAP/CLK1-6 discovery */
     void multi_sniffer_impl::discover(classic_packet::sptr pkt,
-                                      basic_rate_piconet::sptr pn)
+                                      basic_rate_piconet::sptr pn,
+                                      double snr)
     {
       printf("working on UAP/CLK1-6\n");
 
-      /* store packet for decoding after discovery is complete */
-      pn->enqueue(pkt);
+      /* store packet with SNR for decoding after discovery is complete */
+      pn->enqueue(pkt, snr);
 
       if (pn->UAP_from_header(pkt))
         /* success! decode the stored packets */
@@ -298,20 +364,22 @@ namespace gr {
     }
 
     void multi_sniffer_impl::discover(le_packet::sptr pkt, 
-                                      low_energy_piconet::sptr pn) {
+                                      low_energy_piconet::sptr pn,
+                                      double snr) {
     }
 
     /* decode stored packets */
     void multi_sniffer_impl::recall(basic_rate_piconet::sptr pn)
     {
-      packet::sptr pkt;
-      printf("Decoding queued packets\n");
+      std::pair<packet::sptr, double> pkt_snr_pair;
       
-      while (pkt = pn->dequeue()) {
+      while ((pkt_snr_pair = pn->dequeue_with_snr()).first) {
+        packet::sptr pkt = pkt_snr_pair.first;
+        double snr = pkt_snr_pair.second;
         classic_packet::sptr cpkt = std::dynamic_pointer_cast<classic_packet>(pkt);
         printf("time %6d, channel %2d, LAP %06x ", cpkt->d_clkn,
                cpkt->get_channel(), cpkt->get_LAP());
-        decode(cpkt, pn, false);
+        decode(cpkt, pn, false, snr); // Use the stored SNR value
       }
       
       printf("Finished decoding queued packets\n");
