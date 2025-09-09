@@ -1147,6 +1147,7 @@ namespace gr {
         case 13: /* EV5 */
           /* assuming EV5 but could be 3-EV5 */
           EV5(d_clock);
+          break;
         case 14: /* DM5 */
           /* assuming DM5 but could be 2-DH5 */
           DM(d_clock);
