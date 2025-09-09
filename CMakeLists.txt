@@ -97,6 +97,31 @@ endif(APPLE)
 ########################################################################
 find_package(Doxygen)
 
+# Find libbtbb
+find_package(PkgConfig REQUIRED)
+pkg_check_modules(PC_LIBBTBB QUIET libbtbb)
+find_path(LIBBTBB_INCLUDE_DIRS
+    NAMES btbb.h
+    HINTS ${PC_LIBBTBB_INCLUDEDIR}
+    PATHS /usr/include /usr/local/include
+)
+find_library(LIBBTBB_LIBRARIES
+    NAMES btbb
+    HINTS ${PC_LIBBTBB_LIBDIR}
+    PATHS /usr/lib /usr/local/lib
+)
+
+if(NOT LIBBTBB_INCLUDE_DIRS OR NOT LIBBTBB_LIBRARIES)
+    message(FATAL_ERROR "libbtbb not found. Please install libbtbb development package.")
+endif()
+
+message(STATUS "Found libbtbb: ${LIBBTBB_LIBRARIES}")
+message(STATUS "libbtbb include dirs: ${LIBBTBB_INCLUDE_DIRS}")
+
+# Make libbtbb available to all targets
+include_directories(${LIBBTBB_INCLUDE_DIRS})
+link_libraries(${LIBBTBB_LIBRARIES})
+
 ########################################################################
 # Setup doxygen option
 ########################################################################

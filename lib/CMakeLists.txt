@@ -24,6 +24,7 @@ list(APPEND bluetooth_sources
     multi_UAP_impl.cc
     packet_impl.cc
     piconet_impl.cc
+    pcapng_writer.cc
 )
 
 set(bluetooth_sources "${bluetooth_sources}" PARENT_SCOPE)
