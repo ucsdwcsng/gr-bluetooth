@@ -14,7 +14,7 @@
 /* BINDTOOL_GEN_AUTOMATIC(0)                                                       */
 /* BINDTOOL_USE_PYGCCXML(0)                                                        */
 /* BINDTOOL_HEADER_FILE(multi_sniffer.h)                                        */
-/* BINDTOOL_HEADER_FILE_HASH(e83b97ab8f6b4503a112a4944ab632b4)                     */
+/* BINDTOOL_HEADER_FILE_HASH(e7597b972e8cfdbedaec5de294ea4b96)                     */
 /***********************************************************************************/
 
 #include <pybind11/complex.h>
@@ -41,6 +41,7 @@ void bind_multi_sniffer(py::module& m)
            py::arg("center_freq"),
            py::arg("squelch_threshold"),
            py::arg("tun"),
+           py::arg("pcapng_filename"),
            D(multi_sniffer,make)
         )
         

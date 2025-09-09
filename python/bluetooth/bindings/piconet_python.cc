@@ -14,7 +14,7 @@
 /* BINDTOOL_GEN_AUTOMATIC(0)                                                       */
 /* BINDTOOL_USE_PYGCCXML(0)                                                        */
 /* BINDTOOL_HEADER_FILE(piconet.h)                                        */
-/* BINDTOOL_HEADER_FILE_HASH(397481453fe8a6df5928f66604d1150e)                     */
+/* BINDTOOL_HEADER_FILE_HASH(1b0c0250ad05384f0674ae0dad8bfc7b)                     */
 /***********************************************************************************/
 
 #include <pybind11/complex.h>
@@ -55,10 +55,19 @@ void bind_piconet(py::module& m)
         .def("reset", &piconet::reset, D(piconet, reset))
 
 
-        .def("enqueue", &piconet::enqueue, py::arg("pkt"), D(piconet, enqueue))
+        .def("enqueue", 
+             &piconet::enqueue, 
+             py::arg("pkt"), 
+             py::arg("snr"),
+             D(piconet, enqueue))
 
 
         .def("dequeue", &piconet::dequeue, D(piconet, dequeue))
+
+
+        .def("dequeue_with_snr",
+             &piconet::dequeue_with_snr,
+             "Pull the first packet from the queue with SNR information")
 
         ;
 

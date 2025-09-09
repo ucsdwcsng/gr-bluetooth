@@ -222,4 +222,40 @@
 
  static const char *__doc_gr_bluetooth_le_packet_get_channel = R"doc()doc";
 
+
+ static const char *__doc_gr_bluetooth_le_packet_get_crc = R"doc()doc";
+
+
+ static const char *__doc_gr_bluetooth_le_packet_get_pdu = R"doc()doc";
+
+
+ static const char *__doc_gr_bluetooth_le_packet_get_pdu_type = R"doc()doc";
+
+
+ static const char *__doc_gr_bluetooth_le_packet_get_pdu_length = R"doc()doc";
+
+
+ static const char *__doc_gr_bluetooth_le_packet_get_llid = R"doc()doc";
+
+
+ static const char *__doc_gr_bluetooth_le_packet_get_nesn = R"doc()doc";
+
+
+ static const char *__doc_gr_bluetooth_le_packet_get_sn = R"doc()doc";
+
+
+ static const char *__doc_gr_bluetooth_le_packet_get_md = R"doc()doc";
+
+
+ static const char *__doc_gr_bluetooth_le_packet_get_tx_add = R"doc()doc";
+
+
+ static const char *__doc_gr_bluetooth_le_packet_get_rx_add = R"doc()doc";
+
+
+ static const char *__doc_gr_bluetooth_le_packet_get_symbols = R"doc()doc";
+
+
+ static const char *__doc_gr_bluetooth_le_packet_get_symbol_length = R"doc()doc";
+
   

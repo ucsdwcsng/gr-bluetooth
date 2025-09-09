@@ -14,7 +14,7 @@
 /* BINDTOOL_GEN_AUTOMATIC(0)                                                       */
 /* BINDTOOL_USE_PYGCCXML(0)                                                        */
 /* BINDTOOL_HEADER_FILE(packet.h)                                        */
-/* BINDTOOL_HEADER_FILE_HASH(7e7aead1a9d78212759a54210dda99ca)                     */
+/* BINDTOOL_HEADER_FILE_HASH(715f4f73573b0452eae1fd99c5fadb63)                     */
 /***********************************************************************************/
 
 #include <pybind11/complex.h>
@@ -463,6 +463,78 @@ void bind_packet(py::module& m)
         
         .def("get_channel",&le_packet::get_channel,       
             D(le_packet,get_channel)
+        )
+
+
+        
+        .def("get_crc",&le_packet::get_crc,       
+            D(le_packet,get_crc)
+        )
+
+
+        
+        .def("get_pdu",&le_packet::get_pdu,       
+            D(le_packet,get_pdu)
+        )
+
+
+        
+        .def("get_pdu_type",&le_packet::get_pdu_type,       
+            D(le_packet,get_pdu_type)
+        )
+
+
+        
+        .def("get_pdu_length",&le_packet::get_pdu_length,       
+            D(le_packet,get_pdu_length)
+        )
+
+
+        
+        .def("get_llid",&le_packet::get_llid,       
+            D(le_packet,get_llid)
+        )
+
+
+        
+        .def("get_nesn",&le_packet::get_nesn,       
+            D(le_packet,get_nesn)
+        )
+
+
+        
+        .def("get_sn",&le_packet::get_sn,       
+            D(le_packet,get_sn)
+        )
+
+
+        
+        .def("get_md",&le_packet::get_md,       
+            D(le_packet,get_md)
+        )
+
+
+        
+        .def("get_tx_add",&le_packet::get_tx_add,       
+            D(le_packet,get_tx_add)
+        )
+
+
+        
+        .def("get_rx_add",&le_packet::get_rx_add,       
+            D(le_packet,get_rx_add)
+        )
+
+
+        
+        .def("get_symbols",&le_packet::get_symbols,       
+            D(le_packet,get_symbols)
+        )
+
+
+        
+        .def("get_symbol_length",&le_packet::get_symbol_length,       
+            D(le_packet,get_symbol_length)
         )
 
         ;

@@ -14,7 +14,7 @@
 /* BINDTOOL_GEN_AUTOMATIC(0)                                                       */
 /* BINDTOOL_USE_PYGCCXML(0)                                                        */
 /* BINDTOOL_HEADER_FILE(multi_hopper.h)                                        */
-/* BINDTOOL_HEADER_FILE_HASH(d3646bedbd26f622516708fb82b86992)                     */
+/* BINDTOOL_HEADER_FILE_HASH(11bb9bba3de4d277c426ade8d105f91b)                     */
 /***********************************************************************************/
 
 #include <pybind11/complex.h>
@@ -43,6 +43,7 @@ void bind_multi_hopper(py::module& m)
            py::arg("LAP"),
            py::arg("aliased"),
            py::arg("tun"),
+           py::arg("pcapng_filename"),
            D(multi_hopper,make)
         )
         
