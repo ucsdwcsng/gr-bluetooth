@@ -56,6 +56,8 @@ class my_top_block(gr.top_block):
 						help="SNR squelch threshold in dB (default=10.0)")
 		parser.add_option("-w","--wireshark", action="store_true", default=False,
 						help="direct output to a tun interface")
+		parser.add_option("-P","--pcapng", type="string", default=None,
+						help="output packets to PCAPNG file")
 
 		(options, args) = parser.parse_args ()
 		if len(args) != 0:
@@ -142,7 +144,7 @@ class my_top_block(gr.top_block):
 			# decode all packets from all piconets on all channels,
 			# discovering UAPs and clocks as necessary
 			dst = gr_bluetooth.multi_sniffer(options.sample_rate, options.freq,
-											 options.snr, options.wireshark)
+											 options.snr, options.wireshark, options.pcapng)
 		elif options.lap is None:
 			# print out LAP for every frame detected
 			dst = gr_bluetooth.multi_LAP(options.sample_rate, options.freq,
@@ -151,7 +153,7 @@ class my_top_block(gr.top_block):
 			# determine UAP and then master clock from hopping sequence
 			dst = gr_bluetooth.multi_hopper(options.sample_rate, options.freq,
 											options.snr, int(options.lap, 16),
-											options.aliased, options.wireshark)
+											options.aliased, options.wireshark, options.pcapng)
 		else:
 			# determine UAP from frames matching the user-specified LAP
 			dst = gr_bluetooth.multi_UAP(options.sample_rate, options.freq,
