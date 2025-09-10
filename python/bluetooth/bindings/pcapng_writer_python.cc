@@ -14,7 +14,7 @@
 /* BINDTOOL_GEN_AUTOMATIC(0)                                                       */
 /* BINDTOOL_USE_PYGCCXML(0)                                                        */
 /* BINDTOOL_HEADER_FILE(pcapng_writer.h)                                          */
-/* BINDTOOL_HEADER_FILE_HASH(3384d28b82c81ab0bbb5d360399a369b)                   */
+/* BINDTOOL_HEADER_FILE_HASH(a4379998d14b680c9b7a49eae0952c49)                   */
 /***********************************************************************************/
 
 #include <pybind11/complex.h>
@@ -61,6 +61,23 @@ void bind_pcapng_writer(py::module& m)
             py::arg("noise_power"),
             D(pcapng_writer,write_bredr_packet)
         )
+        
+
+        
+        .def("btbb_record_bdaddr_info",&pcapng_writer::btbb_record_bdaddr_info,       
+            py::arg("pn"),
+            py::arg("pkt"),
+            D(pcapng_writer,btbb_record_bdaddr_info)
+        )
+
+
+        
+        .def("btbb_record_clk_info",&pcapng_writer::btbb_record_clk_info,       
+            py::arg("pn"),
+            py::arg("pkt"),
+            py::arg("timestamp_ns"),
+            D(pcapng_writer,btbb_record_clk_info)
+        )
 
 
         
@@ -70,6 +87,14 @@ void bind_pcapng_writer(py::module& m)
             py::arg("signal_power"),
             py::arg("noise_power"),
             D(pcapng_writer,write_le_packet)
+        )
+
+
+        
+        .def("le_record_connect_req",&pcapng_writer::le_record_connect_req,       
+            py::arg("pkt"),
+            py::arg("timestamp_ns"),
+            D(pcapng_writer,le_record_connect_req)
         )
 
 

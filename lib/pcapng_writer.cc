@@ -45,7 +45,7 @@ namespace gr {
 
     pcapng_writer::pcapng_writer(const std::string& filename)
       : d_pcapng_enabled(false), d_filename(filename),
-        d_bredr_pcapng_handle(nullptr), d_le_pcapng_handle(nullptr)
+        d_pcapng_handle(nullptr)
     {
     }
 
@@ -62,26 +62,14 @@ namespace gr {
       }
 
       // Initialize handles to NULL
-      d_bredr_pcapng_handle = nullptr;
-      d_le_pcapng_handle = nullptr;
+      d_pcapng_handle = nullptr;
 
       // Create BR/EDR pcapng file
-      int result_bredr = btbb_pcapng_create_file(d_filename.c_str(), "gr-bluetooth BR/EDR interface", &d_bredr_pcapng_handle);
+      int result_bredr = btbb_pcapng_create_file(d_filename.c_str(), "gr-bluetooth BR/EDR + LE interface", &d_pcapng_handle);
       
-      // Create LE pcapng file (append _le to filename)
-      std::string le_filename = d_filename;
-      size_t dot_pos = le_filename.find_last_of('.');
-      if (dot_pos != std::string::npos) {
-        le_filename.insert(dot_pos, "_le");
-      } else {
-        le_filename += "_le";
-      }
-      
-      int result_le = lell_pcapng_create_file(le_filename.c_str(), "gr-bluetooth LE interface", &d_le_pcapng_handle);
-      
-      if (result_bredr != 0 && result_le != 0) {
-        fprintf(stderr, "Failed to create pcapng files: %s (BR/EDR error %d, LE error %d)\n", 
-                d_filename.c_str(), result_bredr, result_le);
+      if (result_bredr != 0) {
+        fprintf(stderr, "Failed to create pcapng files: %s (error %d)\n", 
+                d_filename.c_str(), result_bredr);
         d_pcapng_enabled = false;
         return false;
       }
@@ -96,7 +84,7 @@ namespace gr {
                                           int8_t signal_power, 
                                           int8_t noise_power)
     {
-      if (!d_pcapng_enabled || !d_bredr_pcapng_handle) return;
+      if (!d_pcapng_enabled || !d_pcapng_handle) return;
 
       // Create a new btbb_packet and populate it with data from gr-bluetooth packet
       btbb_packet *btbb_pkt = btbb_packet_new();
@@ -164,7 +152,7 @@ namespace gr {
       uint8_t uap = pn->have_UAP() ? pn->get_UAP() : UAP_ANY;
 
       // Write to pcapng file with all the comprehensive information
-      int result = btbb_pcapng_append_packet(d_bredr_pcapng_handle, timestamp_ns,
+      int result = btbb_pcapng_append_packet((btbb_pcapng_handle*)d_pcapng_handle, timestamp_ns,
                                            signal_power, noise_power,
                                            lap, uap, btbb_pkt);
       
@@ -172,19 +160,25 @@ namespace gr {
         fprintf(stderr, "Failed to write BR/EDR packet to pcapng (error %d)\n", result);
       }
 
+      btbb_packet_unref(btbb_pkt);
+    }
+
+    void pcapng_writer::btbb_record_bdaddr_info(basic_rate_piconet::sptr pn, classic_packet::sptr pkt)
+    {
       // Record additional piconet information if available
       if (pn->have_NAP() && pn->have_UAP()) {
         uint64_t bdaddr = ((uint64_t)pn->get_NAP() << 32) | ((uint64_t)pn->get_UAP() << 24) | pkt->get_LAP();
-        btbb_pcapng_record_bdaddr(d_bredr_pcapng_handle, bdaddr, 0xFF, 1);
+        btbb_pcapng_record_bdaddr((btbb_pcapng_handle*)d_pcapng_handle, bdaddr, 0xFF, 1);
       }
+    }
 
+    void pcapng_writer::btbb_record_clk_info(basic_rate_piconet::sptr pn, classic_packet::sptr pkt, uint64_t timestamp_ns)
+    {
       // Record clock information if available
       if (pn->have_clk27()) {
         uint64_t bdaddr = ((uint64_t)pn->get_NAP() << 32) | ((uint64_t)pn->get_UAP() << 24) | pkt->get_LAP();
-        btbb_pcapng_record_btclock(d_bredr_pcapng_handle, bdaddr, timestamp_ns, pkt->d_clkn, 0x7FFFFFF);
+        btbb_pcapng_record_btclock((btbb_pcapng_handle*)d_pcapng_handle, bdaddr, timestamp_ns, pkt->d_clkn, 0x7FFFFFF);
       }
-
-      btbb_packet_unref(btbb_pkt);
     }
 
     void pcapng_writer::write_le_packet(le_packet::sptr pkt, 
@@ -192,7 +186,7 @@ namespace gr {
                                        int8_t signal_power, 
                                        int8_t noise_power)
     {
-      if (!d_pcapng_enabled || !d_le_pcapng_handle) return;
+      if (!d_pcapng_enabled || !d_pcapng_handle) return;
 
       // Get the raw symbols from the gr-bluetooth packet
       const char* symbols = pkt->get_symbols();
@@ -235,13 +229,8 @@ namespace gr {
         // Get Access Address for reference
         uint32_t ref_aa = pkt->get_AA();
         
-        // Check if this is a CONNECT_REQ packet and record it
-        if (pkt->got_payload() && pkt->get_pdu_type() == CONNECT_REQ) {
-          le_record_connect_req(pkt, timestamp_ns);
-        }
-        
         // Write to pcapng file
-        int result = lell_pcapng_append_packet(d_le_pcapng_handle, timestamp_ns,
+        int result = lell_pcapng_append_packet((lell_pcapng_handle*)d_pcapng_handle, timestamp_ns,
                                              signal_power, noise_power,
                                              ref_aa, lell_pkt);
         
@@ -261,7 +250,7 @@ namespace gr {
 
     void pcapng_writer::le_record_connect_req(le_packet::sptr pkt, uint64_t timestamp_ns)
     {
-      if (!d_pcapng_enabled || !d_le_pcapng_handle) return;
+      if (!d_pcapng_enabled || !d_pcapng_handle) return;
 
       // Get the PDU data from the packet
       const uint8_t* pdu = pkt->get_pdu();
@@ -284,8 +273,8 @@ namespace gr {
       }
 
       // Record CONNECT_REQ parameters to pcapng file
-      int result = lell_pcapng_record_connect_req(d_le_pcapng_handle, timestamp_ns, pdu);
-      
+      int result = lell_pcapng_record_connect_req((lell_pcapng_handle*)d_pcapng_handle, timestamp_ns, pdu);
+
       if (result != 0) {
         fprintf(stderr, "Failed to record CONNECT_REQ to pcapng (error %d)\n", result);
       }
@@ -294,20 +283,9 @@ namespace gr {
     void pcapng_writer::close()
     {
       if (d_pcapng_enabled) {
-        int result_bredr = 0, result_le = 0;
-        
-        if (d_bredr_pcapng_handle != nullptr) {
-          result_bredr = btbb_pcapng_close(d_bredr_pcapng_handle);
-          d_bredr_pcapng_handle = nullptr;
-        }
-        
-        if (d_le_pcapng_handle != nullptr) {
-          result_le = lell_pcapng_close(d_le_pcapng_handle);
-          d_le_pcapng_handle = nullptr;
-        }
-        
-        if (result_bredr != 0 || result_le != 0) {
-          fprintf(stderr, "Failed to close pcapng files (BR/EDR error %d, LE error %d)\n", result_bredr, result_le);
+        if (d_pcapng_handle != nullptr) {
+          btbb_pcapng_close((btbb_pcapng_handle*)d_pcapng_handle);
+          d_pcapng_handle = nullptr;
         }
         d_pcapng_enabled = false;
       }

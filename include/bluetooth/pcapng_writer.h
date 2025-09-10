@@ -50,9 +50,12 @@ namespace gr {
     private:
       bool d_pcapng_enabled;
       std::string d_filename;
-      btbb_pcapng_handle* d_bredr_pcapng_handle;
-      lell_pcapng_handle* d_le_pcapng_handle;
-      
+
+      // define a dummy type that aliases both bredr and le pcapng handles
+      using pcapng_handle = btbb_pcapng_handle;   // it is the same as lell_pcapng_handle;
+
+      pcapng_handle* d_pcapng_handle;
+
     public:
       typedef std::shared_ptr<pcapng_writer> sptr;
 
@@ -91,6 +94,21 @@ namespace gr {
                              int8_t noise_power);
 
       /*!
+       * \brief Record Bluetooth address information to pcapng file
+       * \param pn Piconet information
+       * \param pkt Classic packet
+       */
+      void btbb_record_bdaddr_info(basic_rate_piconet::sptr pn, classic_packet::sptr pkt);
+
+      /*!
+       * \brief Record Bluetooth clock information to pcapng file
+       * \param pn Piconet information
+       * \param pkt Classic packet
+       * \param timestamp_ns Timestamp in nanoseconds
+       */
+      void btbb_record_clk_info(basic_rate_piconet::sptr pn, classic_packet::sptr pkt, uint64_t timestamp_ns);
+
+      /*!
        * \brief Write BLE packet to pcapng file
        * \param pkt BLE packet to write
        * \param timestamp_ns Timestamp in nanoseconds
@@ -103,15 +121,14 @@ namespace gr {
                           int8_t noise_power);
 
       /*!
-       * \brief Close PCAPNG files
-       */
-      void close();
-
-    private:
-      /*!
        * \brief Record BLE CONNECT_REQ parameters to pcapng file
        */
       void le_record_connect_req(le_packet::sptr pkt, uint64_t timestamp_ns);
+      
+      /*!
+       * \brief Close PCAPNG files
+       */
+      void close();
     };
 
   } // namespace bluetooth
