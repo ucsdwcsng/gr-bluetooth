@@ -28,7 +28,7 @@
 
 #include "bluetooth/multi_hopper.h"
 #include "bluetooth/piconet.h"
-#include "bluetooth/pcapng_writer.h"
+#include "pcapng_writer.h"
 #include "tun.h"
 
 namespace gr {

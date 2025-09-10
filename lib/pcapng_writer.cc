@@ -27,7 +27,7 @@
 #include "config.h"
 #endif
 
-#include <bluetooth/pcapng_writer.h>
+#include "pcapng_writer.h"
 #include <cstdio>
 #include <cstring>
 
@@ -65,7 +65,7 @@ namespace gr {
       d_pcapng_handle = nullptr;
 
       // Create BR/EDR pcapng file
-      int result_bredr = btbb_pcapng_create_file(d_filename.c_str(), "gr-bluetooth BR/EDR + LE interface", &d_pcapng_handle);
+      int result_bredr = btbb_pcapng_create_file(d_filename.c_str(), "gr-bluetooth", &d_pcapng_handle);
       
       if (result_bredr != 0) {
         fprintf(stderr, "Failed to create pcapng files: %s (error %d)\n", 
@@ -230,7 +230,7 @@ namespace gr {
         uint32_t ref_aa = pkt->get_AA();
         
         // Write to pcapng file
-        int result = lell_pcapng_append_packet((lell_pcapng_handle*)d_pcapng_handle, timestamp_ns,
+        int result = lell_pcapng_append_packet(d_pcapng_handle, timestamp_ns,
                                              signal_power, noise_power,
                                              ref_aa, lell_pkt);
         
@@ -273,7 +273,7 @@ namespace gr {
       }
 
       // Record CONNECT_REQ parameters to pcapng file
-      int result = lell_pcapng_record_connect_req((lell_pcapng_handle*)d_pcapng_handle, timestamp_ns, pdu);
+      int result = lell_pcapng_record_connect_req(d_pcapng_handle, timestamp_ns, pdu);
 
       if (result != 0) {
         fprintf(stderr, "Failed to record CONNECT_REQ to pcapng (error %d)\n", result);

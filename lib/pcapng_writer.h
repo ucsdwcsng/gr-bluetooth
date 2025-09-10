@@ -51,10 +51,7 @@ namespace gr {
       bool d_pcapng_enabled;
       std::string d_filename;
 
-      // define a dummy type that aliases both bredr and le pcapng handles
-      using pcapng_handle = btbb_pcapng_handle;   // it is the same as lell_pcapng_handle;
-
-      pcapng_handle* d_pcapng_handle;
+      btbb_pcapng_handle* d_pcapng_handle;
 
     public:
       typedef std::shared_ptr<pcapng_writer> sptr;

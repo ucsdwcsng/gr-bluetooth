@@ -28,7 +28,6 @@ void bind_multi_sniffer(py::module& m);
 void bind_multi_UAP(py::module& m);
 void bind_packet(py::module& m);
 void bind_piconet(py::module& m);
-void bind_pcapng_writer(py::module& m);
 // ) END BINDING_FUNCTION_PROTOTYPES
 
 
@@ -64,6 +63,5 @@ PYBIND11_MODULE(bluetooth_python, m)
     bind_multi_UAP(m);
     bind_packet(m);
     bind_piconet(m);
-    bind_pcapng_writer(m);
     // ) END BINDING_FUNCTION_CALLS
 }

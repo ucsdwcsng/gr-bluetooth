@@ -29,7 +29,7 @@
 #include "bluetooth/multi_sniffer.h"
 #include "bluetooth/packet.h"
 #include "bluetooth/piconet.h"
-#include "bluetooth/pcapng_writer.h"
+#include "pcapng_writer.h"
 #include "tun.h"
 #include <map>
 
