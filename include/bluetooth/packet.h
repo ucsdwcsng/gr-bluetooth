@@ -284,7 +284,7 @@ namespace gr {
       int get_channel( ) { return d_channel; }
     };
 
-#define LE_MAX_PDU_OCTETS 39
+#define LE_MAX_PDU_OCTETS 251
 #define LE_MAX_OCTETS     (1+4+LE_MAX_PDU_OCTETS+3)
 #define LE_MAX_SYMBOLS    (8*LE_MAX_OCTETS)
 

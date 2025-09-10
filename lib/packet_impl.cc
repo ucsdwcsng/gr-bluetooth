@@ -1550,17 +1550,17 @@ namespace gr {
         d_PDU_Type   = (header >> 0) & 0xf;
         d_TxAdd      = (header >> 6) & 1;
         d_RxAdd      = (header >> 7) & 1;
-        d_PDU_Length = (header >> 8) & 0x3f;
+        d_PDU_Length = (header >> 8) & 0xff;
       }
       else {
         d_LLID       = (header >> 0) & 3;
         d_NESN       = (header >> 2) & 1;
         d_SN         = (header >> 3) & 1;
         d_MD         = (header >> 4) & 1;
-        d_PDU_Length = (header >> 8) & 0x1f;
+        d_PDU_Length = (header >> 8) & 0xff;
       }
 
-      if (d_PDU_Length > 00) {
+      if (d_PDU_Length > 0U) {
         d_have_payload   = true;
         d_payload_length = d_PDU_Length;
       }
@@ -1591,7 +1591,8 @@ namespace gr {
     
     void le_packet_impl::decode_payload()
     {
-      
+      d_payload_length = d_PDU_Length;
+      if (d_PDU_Length > 0U)  d_have_payload   = true;
     }
            
     void le_packet_impl::print()
