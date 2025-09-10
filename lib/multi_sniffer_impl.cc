@@ -314,8 +314,7 @@ namespace gr {
       pkt->decode();
 
       if (pkt->got_payload()) {
-        pkt->print();
-        
+
         // Write to pcapng if enabled  
         if (d_pcapng_writer && d_pcapng_writer->is_enabled()) {
           uint32_t clkn = (int) (d_cumulative_count / d_samples_per_slot) & 0x7ffffff;
