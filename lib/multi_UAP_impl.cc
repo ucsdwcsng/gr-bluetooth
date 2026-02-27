@@ -81,9 +81,9 @@ namespace gr {
           gr_complex *ch_samples = new gr_complex[noutput_items+10000];
           gr_vector_void_star btch( 1 );
           btch[0] = ch_samples;
-          double on_channel_energy, snr;
+          double on_channel_energy, snr, off_channel_energy;
           int ch_count = channel_samples( freq, input_items, btch, on_channel_energy, history() );
-          if (check_snr( freq, on_channel_energy, snr, input_items )) {
+          if (check_snr( freq, on_channel_energy, snr, off_channel_energy, input_items )) {
             gr_vector_const_void_star cbtch( 1 );
             cbtch[0] = ch_samples;
             int num_symbols = channel_symbols( cbtch, symbols, ch_count );

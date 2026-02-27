@@ -64,12 +64,15 @@ namespace gr {
       // Initialize handles to NULL
       d_pcapng_handle = nullptr;
 
-      // Create BR/EDR pcapng file
-      int result_bredr = btbb_pcapng_create_file(d_filename.c_str(), "gr-bluetooth", &d_pcapng_handle);
+      // delete file if it already exists
+      std::remove(d_filename.c_str());
       
-      if (result_bredr != 0) {
+      // Create pcapng file
+      int result = btbb_pcapng_create_file(d_filename.c_str(), "gr-bluetooth", &d_pcapng_handle);
+
+      if (result != 0) {
         fprintf(stderr, "Failed to create pcapng files: %s (error %d)\n", 
-                d_filename.c_str(), result_bredr);
+                d_filename.c_str(), result);
         d_pcapng_enabled = false;
         return false;
       }
@@ -220,7 +223,7 @@ namespace gr {
       uint32_t clk100ns = (uint32_t)(timestamp_ns / 100);
       
       // Get physical channel from the packet
-      uint16_t phys_channel = (uint16_t)pkt->get_channel();
+      uint16_t phys_channel = (uint16_t)pkt->get_channel()*2 + 2402; // Convert to MHz
       
       // Allocate and decode using libbtbb
       lell_allocate_and_decode(byte_stream, phys_channel, clk100ns, &lell_pkt);

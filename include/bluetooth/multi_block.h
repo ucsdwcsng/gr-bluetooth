@@ -145,6 +145,7 @@ namespace gr {
       bool check_snr( const double               freq, 
                       const double               on_channel_energy,
                       double&                    snr, 
+                      double&                    off_channel_energy,
                       gr_vector_const_void_star& in );
 
       /* add some number of symbols to the block's history requirement */

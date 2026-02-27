@@ -52,8 +52,8 @@ class my_top_block(gr.top_block):
 						  help="sample rate of input (default: use DECIM)")
 		parser.add_option("-s", "--input-shorts", action="store_true", default=False,
 						help="input interleaved shorts instead of complex floats")
-		parser.add_option("-t", "--snr", type="eng_float", default=10.0,
-						help="SNR squelch threshold in dB (default=10.0)")
+		parser.add_option("-t", "--snr", type="eng_float", default=20.0,
+						help="SNR squelch threshold in dB (default=20.0)")
 		parser.add_option("-w","--wireshark", action="store_true", default=False,
 						help="direct output to a tun interface")
 		parser.add_option("-P","--pcapng", type="string", default=None,

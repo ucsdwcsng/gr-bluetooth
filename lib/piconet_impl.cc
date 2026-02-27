@@ -30,23 +30,24 @@
 #include <gnuradio/io_signature.h>
 #include "piconet_impl.h"
 #include <stdio.h>
+#include <tuple>
 
 namespace gr {
   namespace bluetooth {
 
     /* add a packet to the queue with SNR information */
-    void piconet::enqueue(packet::sptr pkt, double snr) {
-      d_pkt_queue.emplace_back(pkt, snr);
+    void piconet::enqueue(packet::sptr pkt, double snr, double on_energy, double off_energy) {
+      d_pkt_queue.emplace_back(pkt, snr, on_energy, off_energy);
     }
 
     /* pull the first packet from the queue (FIFO) with SNR */
-    std::pair<packet::sptr, double> piconet::dequeue_with_snr() {
+    std::tuple<packet::sptr, double, double, double> piconet::dequeue_with_snr() {
       if (d_pkt_queue.size() > 0) {
         queued_packet qpkt = d_pkt_queue.front();
         d_pkt_queue.erase(d_pkt_queue.begin());
-        return std::make_pair(qpkt.pkt, qpkt.snr);
+        return std::make_tuple(qpkt.pkt, qpkt.snr, qpkt.on_energy, qpkt.off_energy);
       }
-      return std::make_pair(packet::sptr(), 0.0);
+      return std::make_tuple(packet::sptr(), 0.0, 0.0, 0.0);
     }
 
     /* pull the first packet from the queue (FIFO) - backward compatibility */

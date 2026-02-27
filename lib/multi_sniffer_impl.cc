@@ -32,6 +32,8 @@
 #include <cstring>
 #include <sys/time.h>
 #include <vector>
+#include <cmath>
+#include <tuple>
 
 // Include BLE packet constants
 #define CONNECT_REQ 5
@@ -107,10 +109,10 @@ namespace gr {
         gr_complex *ch_samples = new gr_complex[noutput_items+100000];
         gr_vector_void_star btch( 1 );
         btch[0] = ch_samples;
-        double on_channel_energy, snr;
+        double on_channel_energy, snr, off_channel_energy;
         int ch_count = channel_samples( freq, input_items, btch, on_channel_energy, history() );
         bool brok; // = check_basic_rate_squelch(input_items);
-        bool leok = brok = check_snr( freq, on_channel_energy, snr, input_items );
+        bool leok = brok = check_snr( freq, on_channel_energy, snr, off_channel_energy, input_items );
 
         /* number of symbols available */
         if (brok || leok) {
@@ -133,7 +135,8 @@ namespace gr {
               int i = classic_packet::sniff_ac(symp, limit);
               if (i >= 0) {
                 int step = i + SYMBOLS_PER_BASIC_RATE_SHORTENED_ACCESS_CODE;
-                ac(&symp[i], len - i, freq, snr);
+                uint64_t sym_offset_ns = i * (1000000000ULL / SYMBOL_RATE);
+                ac(&symp[i], len - i, freq, snr, sym_offset_ns, on_channel_energy, off_channel_energy);
                 len   -= step;
 				if(step >= sym_length) error_out("Bad step");
                 symp   = &symp[step];
@@ -155,7 +158,8 @@ namespace gr {
               if (i >= 0) {
                 int step = i + SYMBOLS_PER_LOW_ENERGY_PREAMBLE_AA;
 				//printf("symp[%i], len-i = %i\n", i, len-i);
-                aa(&symp[i], len - i, freq, snr);
+                uint64_t sym_offset_ns = i * (1000000000ULL / SYMBOL_RATE);
+                aa(&symp[i], len - i, freq, snr, sym_offset_ns, on_channel_energy, off_channel_energy);
                 len   -= step;
 				if(step >= sym_length) error_out("Bad step");
                 symp   = &symp[step];
@@ -186,7 +190,7 @@ namespace gr {
 
     /* handle AC */
     void 
-    multi_sniffer_impl::ac(char *symbols, int len, double freq, double snr)
+    multi_sniffer_impl::ac(char *symbols, int len, double freq, double snr, uint64_t sym_offset_ns, double on_channel_energy, double off_channel_energy)
     {
       /* native (local) clock in 625 us */	
       uint32_t clkn = (int) (d_cumulative_count / d_samples_per_slot) & 0x7ffffff;
@@ -203,10 +207,10 @@ namespace gr {
         basic_rate_piconet::sptr pn = d_basic_rate_piconets[lap];
 
         if (pn->have_clk6() && pn->have_UAP()) {
-          decode(pkt, pn, true, snr);
+          decode(pkt, pn, true, snr, 0, on_channel_energy, off_channel_energy);
         } 
         else {
-          discover(pkt, pn, snr);
+          discover(pkt, pn, snr, on_channel_energy, off_channel_energy);
         }
 
         /*
@@ -224,10 +228,12 @@ namespace gr {
 
     /* handle AA */
     void
-    multi_sniffer_impl::aa(char *symbols, int len, double freq, double snr)
+    multi_sniffer_impl::aa(char *symbols, int len, double freq, double snr, uint64_t sym_offset_ns, double on_channel_energy, double off_channel_energy)
     {
       le_packet::sptr pkt = le_packet::make(symbols, len, freq);
       uint32_t clkn = (int) (d_cumulative_count / d_samples_per_slot) & 0x7ffffff;
+
+      uint64_t timestamp_ns = (uint64_t)clkn * 625000 + sym_offset_ns; 
 
       printf("time %6d, snr=%.1f, ", clkn, snr);
       pkt->print( );
@@ -238,7 +244,7 @@ namespace gr {
           d_low_energy_piconets[aa] = low_energy_piconet::make(aa);
         }
         low_energy_piconet::sptr pn = d_low_energy_piconets[aa];
-        decode(pkt, pn, snr);
+        decode(pkt, pn, snr, timestamp_ns, on_channel_energy, off_channel_energy);
       }
       else {
         // TODO: log AA
@@ -257,7 +263,7 @@ namespace gr {
     /* decode packets with headers */
     void multi_sniffer_impl::decode(classic_packet::sptr pkt,
                                     basic_rate_piconet::sptr pn, 
-                                    bool first_run, double snr)
+                                    bool first_run, double snr, uint64_t timestamp_ns, double on_channel_energy, double off_channel_energy)
     {
       uint32_t clock; /* CLK of target piconet */
 
@@ -272,9 +278,9 @@ namespace gr {
         
         // Write to pcapng if enabled
         if (d_pcapng_writer && d_pcapng_writer->is_enabled()) {
-          uint64_t timestamp_ns = (uint64_t)pkt->d_clkn * 625000; // 625 us per slot in ns
-          int8_t signal_power = (int8_t)(snr + 10); // Rough estimate
-          int8_t noise_power = 10; // Rough estimate
+          // uint64_t timestamp_ns = (uint64_t)pkt->d_clkn * 625000; // 625 us per slot in ns
+          int8_t signal_power = (on_channel_energy > 0 && off_channel_energy > 0) ? (int8_t)(10.0 * log10(on_channel_energy)) : (int8_t)(snr + 10);
+          int8_t noise_power = (on_channel_energy > 0 && off_channel_energy > 0) ? (int8_t)(10.0 * log10(off_channel_energy)) : 10;
           d_pcapng_writer->write_bredr_packet(pkt, pn, timestamp_ns, signal_power, noise_power);
         }
         
@@ -301,14 +307,14 @@ namespace gr {
         pn->reset();
 
         /* start rediscovery with this packet */
-        discover(pkt, pn, snr);
+        discover(pkt, pn, snr, on_channel_energy, off_channel_energy);
       } else {
         printf("Giving up on queued packet!\n");
       }
     }
 
     void multi_sniffer_impl::decode(le_packet::sptr pkt, 
-                                    low_energy_piconet::sptr pn, double snr) {
+                                    low_energy_piconet::sptr pn, double snr, uint64_t timestamp_ns, double on_channel_energy, double off_channel_energy) {
       
       // Decode the BLE packet using libbtbb integration
       pkt->decode();
@@ -318,9 +324,9 @@ namespace gr {
         // Write to pcapng if enabled  
         if (d_pcapng_writer && d_pcapng_writer->is_enabled()) {
           uint32_t clkn = (int) (d_cumulative_count / d_samples_per_slot) & 0x7ffffff;
-          uint64_t timestamp_ns = (uint64_t)clkn * 625000; // 625 us per slot in ns
-          int8_t signal_power = (int8_t)(snr + 10); // Rough estimate
-          int8_t noise_power = 10; // Rough estimate
+          // uint64_t timestamp_ns = (uint64_t)clkn * 625000; // 625 us per slot in ns
+          int8_t signal_power = (on_channel_energy > 0 && off_channel_energy > 0) ? (int8_t)(10.0 * log10(on_channel_energy)) : (int8_t)(snr + 10);
+          int8_t noise_power = (on_channel_energy > 0 && off_channel_energy > 0) ? (int8_t)(10.0 * log10(off_channel_energy)) : 10;
           d_pcapng_writer->write_le_packet(pkt, timestamp_ns, signal_power, noise_power);
         }
         
@@ -350,12 +356,12 @@ namespace gr {
     /* work on UAP/CLK1-6 discovery */
     void multi_sniffer_impl::discover(classic_packet::sptr pkt,
                                       basic_rate_piconet::sptr pn,
-                                      double snr)
+                                      double snr, double on_channel_energy, double off_channel_energy)
     {
       printf("working on UAP/CLK1-6\n");
 
       /* store packet with SNR for decoding after discovery is complete */
-      pn->enqueue(pkt, snr);
+      pn->enqueue(pkt, snr, on_channel_energy, off_channel_energy);
 
       if (pn->UAP_from_header(pkt))
         /* success! decode the stored packets */
@@ -364,21 +370,23 @@ namespace gr {
 
     void multi_sniffer_impl::discover(le_packet::sptr pkt, 
                                       low_energy_piconet::sptr pn,
-                                      double snr) {
+                                      double snr, double on_channel_energy, double off_channel_energy) {
     }
 
     /* decode stored packets */
     void multi_sniffer_impl::recall(basic_rate_piconet::sptr pn)
     {
-      std::pair<packet::sptr, double> pkt_snr_pair;
+      std::tuple<packet::sptr, double, double, double> pkt_info;
       
-      while ((pkt_snr_pair = pn->dequeue_with_snr()).first) {
-        packet::sptr pkt = pkt_snr_pair.first;
-        double snr = pkt_snr_pair.second;
+      while ((pkt_info = pn->dequeue_with_snr(), std::get<0>(pkt_info))) {
+        packet::sptr pkt = std::get<0>(pkt_info);
+        double snr = std::get<1>(pkt_info);
+        double on_energy = std::get<2>(pkt_info);
+        double off_energy = std::get<3>(pkt_info);
         classic_packet::sptr cpkt = std::dynamic_pointer_cast<classic_packet>(pkt);
         printf("time %6d, channel %2d, LAP %06x ", cpkt->d_clkn,
                cpkt->get_channel(), cpkt->get_LAP());
-        decode(cpkt, pn, false, snr); // Use the stored SNR value
+        decode(cpkt, pn, false, snr, 0, on_energy, off_energy);
       }
       
       printf("Finished decoding queued packets\n");

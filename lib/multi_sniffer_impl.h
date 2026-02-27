@@ -32,6 +32,7 @@
 #include "pcapng_writer.h"
 #include "tun.h"
 #include <map>
+#include <cstdint>
 
 namespace gr {
   namespace bluetooth {
@@ -60,22 +61,20 @@ namespace gr {
       pcapng_writer::sptr d_pcapng_writer;
 
       /* handle AC */
-      void ac(char *symbols, int len, double freq, double snr);
+      void ac(char *symbols, int len, double freq, double snr, uint64_t sym_offset_ns, double on_channel_energy, double off_channel_energy);
 
       /* handle AA */
-      void aa(char *symbols, int len, double freq, double snr);
-
-      /* handle ID packet (no header) */
+      void aa(char *symbols, int len, double freq, double snr, uint64_t sym_offset_ns, double on_channel_energy, double off_channel_energy);      /* handle ID packet (no header) */
       void id(uint32_t lap);
 
       /* decode packets with headers */
       void decode(classic_packet::sptr pkt, basic_rate_piconet::sptr pn,
-                  bool first_run, double snr);
-      void decode(le_packet::sptr pkt, low_energy_piconet::sptr pn, double snr);
-
-      /* work on UAP/CLK1-6 discovery */
-      void discover(classic_packet::sptr pkt, basic_rate_piconet::sptr pn, double snr);
-      void discover(le_packet::sptr pkt, low_energy_piconet::sptr pn, double snr);
+                  bool first_run, double snr, uint64_t timestamp_ns = 0, double on_channel_energy = 0, double off_channel_energy = 0);
+      void decode(le_packet::sptr pkt, low_energy_piconet::sptr pn, double snr, uint64_t timestamp_ns = 0, double on_channel_energy = 0, double off_channel_energy = 0);      /* work on UAP/CLK1-6 discovery */
+      void discover(classic_packet::sptr pkt, basic_rate_piconet::sptr pn,
+                    double snr, double on_channel_energy, double off_channel_energy);
+      void discover(le_packet::sptr pkt, low_energy_piconet::sptr pn,
+                    double snr, double on_channel_energy, double off_channel_energy);
 
       /* decode stored packets */
       void recall(basic_rate_piconet::sptr pn);

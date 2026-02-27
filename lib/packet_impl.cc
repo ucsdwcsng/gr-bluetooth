@@ -1293,6 +1293,14 @@ namespace gr {
       return retval;
     }
 
+    double le_packet::chan2freq(const int chan) {
+      double retval = -1.0;
+      if ((chan >= 0) && (chan <= 39)) {
+        retval = chan * 2000000.0 + 2402000000.0;
+      }
+      return retval;
+    }
+
     int le_packet::chan2index(const int chan) {
       int retval = -1;
       if ((chan >= 0) && (chan <= 39)) {

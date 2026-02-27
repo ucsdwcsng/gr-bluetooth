@@ -29,6 +29,7 @@
 
 #include <bluetooth/api.h>
 #include "bluetooth/packet.h"
+#include <tuple>
 
 namespace gr {
   namespace bluetooth {
@@ -43,8 +44,10 @@ namespace gr {
       struct queued_packet {
         packet::sptr pkt;
         double snr;
+        double on_energy;
+        double off_energy;
         
-        queued_packet(packet::sptr p, double s) : pkt(p), snr(s) {}
+        queued_packet(packet::sptr p, double s, double on, double off) : pkt(p), snr(s), on_energy(on), off_energy(off) {}
       };
 
       /* queue of packets to be decoded with SNR information */
@@ -67,10 +70,10 @@ namespace gr {
       virtual void reset() = 0;
 
       /* add a packet to the queue with SNR information */
-      void enqueue(packet::sptr pkt, double snr);
+      void enqueue(packet::sptr pkt, double snr, double on_energy, double off_energy);
 
       /* pull the first packet from the queue (FIFO) with SNR */
-      std::pair<packet::sptr, double> dequeue_with_snr();
+      std::tuple<packet::sptr, double, double, double> dequeue_with_snr();
       
       /* pull the first packet from the queue (FIFO) - backward compatibility */
       packet::sptr dequeue();

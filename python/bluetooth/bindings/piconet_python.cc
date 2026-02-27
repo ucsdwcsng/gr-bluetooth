@@ -14,7 +14,7 @@
 /* BINDTOOL_GEN_AUTOMATIC(0)                                                       */
 /* BINDTOOL_USE_PYGCCXML(0)                                                        */
 /* BINDTOOL_HEADER_FILE(piconet.h)                                        */
-/* BINDTOOL_HEADER_FILE_HASH(1b0c0250ad05384f0674ae0dad8bfc7b)                     */
+/* BINDTOOL_HEADER_FILE_HASH(ecf466b82a91555bb1d5ec46bfd97992)                     */
 /***********************************************************************************/
 
 #include <pybind11/complex.h>
@@ -59,6 +59,8 @@ void bind_piconet(py::module& m)
              &piconet::enqueue, 
              py::arg("pkt"), 
              py::arg("snr"),
+             py::arg("on_energy"),
+             py::arg("off_energy"),
              D(piconet, enqueue))
 
 

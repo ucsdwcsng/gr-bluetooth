@@ -254,9 +254,10 @@ namespace gr {
     multi_block::check_snr( const double               freq,
                             const double               on_channel_energy,
                             double&                    snr,
+                            double&                    off_channel_energy,
                             gr_vector_const_void_star& in )
     {
-      double off_channel_energy = 0.0;
+      off_channel_energy = 0.0;
 
       int classic_chan = abs_freq_channel( freq );
       std::map<int, gr::filter::freq_xlating_fir_filter_ccf::sptr>::const_iterator nddci =

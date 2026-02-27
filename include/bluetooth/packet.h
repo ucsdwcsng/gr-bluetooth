@@ -299,6 +299,7 @@ namespace gr {
 
       static sptr make(char *stream, int length, double freq=0.0);
       static int freq2chan(const double freq);
+      static double chan2freq(const int chan);
       static int chan2index(const int chan);
       static int freq2index(const double freq);
 
